@@ -1,0 +1,8 @@
+{
+  "name": "VITA-AI",
+  "description": "AI-powered health & fitness risk prediction system using Gemini 3 Pro multimodal reasoning.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
