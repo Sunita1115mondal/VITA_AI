@@ -1,54 +1,52 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+import librosa
 import numpy as np
 import tempfile
-from pydub import AudioSegment
-import librosa
 import os
-app = FastAPI()
 
+app = FastAPI()  # <-- Define app FIRST
+
+# Then add CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # dev only
+    allow_origins=["http://localhost:3000"],  # React dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    return {"status": "VITA-AI Voice API Running"}
+
 @app.post("/analyze-voice")
 async def analyze_voice(file: UploadFile = File(...)):
-    contents = await file.read()
+    # save uploaded file temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+        contents = await file.read()
+        tmp.write(contents)
+        tmp_path = tmp.name
 
-    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp_webm:
-        tmp_webm.write(contents)
-        tmp_webm.flush()
+    try:
+        # load audio using librosa (ffmpeg will decode)
+        y, sr = librosa.load(tmp_path, sr=16000)
 
-    # Convert webm → wav
-    tmp_wav = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-    audio = AudioSegment.from_file(tmp_webm.name, format="webm")
-    audio.export(tmp_wav.name, format="wav")
+        # ===== FEATURE EXTRACTION =====
+        pitch = np.mean(librosa.yin(y, fmin=50, fmax=300))
+        energy = np.mean(librosa.feature.rms(y=y))
+        mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr), axis=1)
 
-    # Load wav into librosa
-    y, sr = librosa.load(tmp_wav.name, sr=16000)
+        # ===== SIMPLE HEALTH LOGIC (demo) =====
+        stress = "High" if energy > 0.04 and pitch > 180 else "Normal"
+        fatigue = "High" if energy < 0.02 else "Low"
 
-    # ---- FEATURE EXTRACTION ----
-    pitch = np.mean(librosa.yin(y, fmin=50, fmax=300))
-    energy = np.mean(librosa.feature.rms(y=y))
-    mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr), axis=1)
+        return {
+            "pitch": float(pitch),
+            "energy": float(energy),
+            "stress_level": stress,
+            "fatigue_level": fatigue
+        }
 
-    # ---- SIMPLE HEALTH HEURISTICS (demo) ----
-    stress = "High" if energy > 0.04 and pitch > 180 else "Normal"
-    fatigue = "High" if energy < 0.02 else "Low"
-
-    # clean temp files
-    tmp_webm.close()
-    tmp_wav.close()
-    os.remove(tmp_webm.name)
-    os.remove(tmp_wav.name)
-
-    return {
-        "pitch": float(pitch),
-        "energy": float(energy),
-        "stress_level": stress,
-        "fatigue_level": fatigue
-    }
+    finally:
+        os.remove(tmp_path)

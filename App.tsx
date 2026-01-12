@@ -12,6 +12,7 @@ import EmergencyOverlay from './components/EmergencyOverlay';
 import HealthCoachView from './components/HealthCoachView';
 import { analyzeHealthData } from './services/gemini';
 import { AnalysisResult, AnalysisStatus, EmergencyEvent } from './types';
+import VoiceAnalysis from './components/VoiceAnalysis';
 
 // Q&A Session Data
 const HEALTH_QUESTIONS = [
@@ -636,6 +637,15 @@ const App: React.FC = () => {
                     <span className="text-xs font-medium">Add Image</span>
                   </div>
                 </div>
+                {/* --- New Feature: Voice Health Analysis --- */}
+                <div className="mt-6">
+                 <VoiceAnalysis onResult={(data) => {
+                  console.log("Received voice health:", data);
+                 alert(`Stress: ${data.stress_level}, Fatigue: ${data.fatigue_level}`);
+                }} />
+
+              </div>
+
                 <p className="text-xs text-slate-400 mt-auto">
                   Upload photos of BP monitors, ECG strips, or visible symptoms.
                 </p>
