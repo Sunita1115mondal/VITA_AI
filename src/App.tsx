@@ -11,7 +11,7 @@ import HistoryView from './components/HistoryView';
 import EmergencyOverlay from './components/EmergencyOverlay';
 import HealthCoachView from './components/HealthCoachView';
 import { analyzeHealthData } from './services/gemini';
-import { AnalysisResult, AnalysisStatus, EmergencyEvent } from './types';
+import { AnalysisResult, AnalysisStatus, EmergencyEvent } from './types/types';
 import VoiceAnalysis from './components/VoiceAnalysis';
 
 // Q&A Session Data
